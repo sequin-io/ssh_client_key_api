@@ -51,7 +51,7 @@ defmodule SSHClientKeyAPI do
       true ->
         opts
         |> known_hosts_data
-        |> :public_key.ssh_decode(:known_hosts)
+        |> :ssh_file.decode(:known_hosts)
         |> (fn decoded -> decoded ++ [{key, [{:hostnames, [hostname]}]}] end).()
         |> :public_key.ssh_encode(:known_hosts)
         |> (fn encoded -> IO.binwrite(known_hosts(opts), encoded) end).()
@@ -72,7 +72,7 @@ defmodule SSHClientKeyAPI do
       opts
       |> known_hosts_data
       |> to_string
-      |> :public_key.ssh_decode(:known_hosts)
+      |> :ssh_file.decode(:known_hosts)
       |> has_fingerprint(key, hostname)
   end
 
