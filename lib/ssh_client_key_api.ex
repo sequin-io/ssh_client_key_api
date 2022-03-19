@@ -15,7 +15,7 @@ defmodule SSHClientKeyAPI do
 
   ## Options
 
-    * `:identity` - [`IO.device`] providing the ssh key (required)
+    * `:identity` - [`binary`] providing the ssh key (required)
 
     * `:known_hosts` - [`IO.device`] providing the known hosts list. If providing a
       File IO, it should have been opened in `:write` mode (required)
@@ -29,7 +29,7 @@ defmodule SSHClientKeyAPI do
 
   ## Examples
 
-      key = File.open!("path/to/keyfile")
+      key = File.read!("path/to/keyfile")
       known_hosts = File.open!("path/to/known_hosts")
       cb = SSHClientKeyAPI.with_options(identity: key, known_hosts: known_hosts)
       SSHKit.SSH.connect("example.com", key_cb: cb)
@@ -41,7 +41,6 @@ defmodule SSHClientKeyAPI do
 
     opts =
       opts
-      |> Keyword.put(:identity_data, IO.binread(opts[:identity], :all))
       |> Keyword.put(:known_hosts_data, IO.binread(opts[:known_hosts], :all))
 
     {__MODULE__, opts}
@@ -84,7 +83,7 @@ defmodule SSHClientKeyAPI do
 
   def user_key(_alg, opts) do
     opts
-    |> identity_data
+    |> identity
     |> to_string
     |> :public_key.pem_decode()
     |> List.first()
@@ -111,8 +110,8 @@ defmodule SSHClientKeyAPI do
       raise KeyError, {:incorrect_passphrase, alg}
   end
 
-  defp identity_data(opts) do
-    cb_opts(opts)[:identity_data]
+  defp identity(opts) do
+    cb_opts(opts)[:identity]
   end
 
   defp silently_accept_hosts(opts) do
@@ -144,7 +143,7 @@ defmodule SSHClientKeyAPI do
   defp default_identity do
     default_user_dir()
     |> Path.join("id_rsa.pub")
-    |> File.open!([:read])
+    |> File.read!()
   end
 
   defp default_known_hosts do
