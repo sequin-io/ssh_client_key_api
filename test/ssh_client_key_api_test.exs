@@ -96,8 +96,8 @@ defmodule SSHClientKeyAPITest do
   setup do
     %{
       known_hosts: File.open!(@known_hosts, [:ram, :binary, :write, :read]),
-      key: File.open!(@private_key, [:ram, :binary]),
-      protected_key: File.open!(@protected_key, [:ram, :binary])
+      key: @private_key,
+      protected_key: @protected_key
     }
   end
 
@@ -176,7 +176,7 @@ defmodule SSHClientKeyAPITest do
     result =
       SSHClientKeyAPI.user_key(
         :"ssh-dss",
-        key_cb_private: [identity: key, identity_data: IO.binread(key, :all)]
+        key_cb_private: [identity: key]
       )
 
     assert result == {:ok, @decoded_pem}
@@ -188,7 +188,7 @@ defmodule SSHClientKeyAPITest do
     assert_raise KeyError, ~r/passphrase required/, fn ->
       SSHClientKeyAPI.user_key(
         :"ssh-dss",
-        key_cb_private: [identity: protected_key, identity_data: IO.binread(protected_key, :all)]
+        key_cb_private: [identity: protected_key]
       )
     end
   end
@@ -201,8 +201,7 @@ defmodule SSHClientKeyAPITest do
         :"ssh-dss",
         key_cb_private: [
           passphrase: 'wrong',
-          identity: protected_key,
-          identity_data: IO.binread(protected_key, :all)
+          identity: protected_key
         ]
       )
     end
@@ -216,8 +215,7 @@ defmodule SSHClientKeyAPITest do
         :"ssh-scooby-doo",
         key_cb_private: [
           passphrase: 'wrong',
-          identity: protected_key,
-          identity_data: IO.binread(protected_key, :all)
+          identity: protected_key
         ]
       )
     end
@@ -231,8 +229,7 @@ defmodule SSHClientKeyAPITest do
         :"ssh-dss",
         key_cb_private: [
           passphrase: 'phrase',
-          identity: protected_key,
-          identity_data: IO.binread(protected_key, :all)
+          identity: protected_key
         ]
       )
 
@@ -242,10 +239,5 @@ defmodule SSHClientKeyAPITest do
   test "with options reads the known_hosts", %{known_hosts: known_hosts, key: key} do
     {_, opts} = SSHClientKeyAPI.with_options(known_hosts: known_hosts, identity: key)
     assert Keyword.get(opts, :known_hosts_data) == @known_hosts
-  end
-
-  test "with options reads the key file", %{known_hosts: known_hosts, key: key} do
-    {_, opts} = SSHClientKeyAPI.with_options(known_hosts: known_hosts, identity: key)
-    assert Keyword.get(opts, :identity_data) == @private_key
   end
 end
