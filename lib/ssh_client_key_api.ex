@@ -40,8 +40,11 @@ defmodule SSHClientKeyAPI do
     opts = with_defaults(opts)
 
     opts =
-      opts
-      |> Keyword.put(:known_hosts_data, IO.binread(opts[:known_hosts], :all))
+      if opts[:known_hosts] do
+        Keyword.put(opts, :known_hosts_data, IO.binread(opts[:known_hosts], :all))
+      else
+        opts
+      end
 
     {__MODULE__, opts}
   end
@@ -49,12 +52,14 @@ defmodule SSHClientKeyAPI do
   def add_host_key(hostname, key, opts) do
     case silently_accept_hosts(opts) do
       true ->
-        opts
-        |> known_hosts_data
-        |> :ssh_file.decode(:known_hosts)
-        |> (fn decoded -> decoded ++ [{key, [{:hostnames, [hostname]}]}] end).()
-        |> :ssh_file.encode(:known_hosts)
-        |> (fn encoded -> IO.binwrite(known_hosts(opts), encoded) end).()
+        if known_hosts = known_hosts_data(opts) do
+          :ssh_file.decode(known_hosts, :known_hosts)
+          |> (fn decoded -> decoded ++ [{key, [{:hostnames, [hostname]}]}] end).()
+          |> :ssh_file.encode(:known_hosts)
+          |> (fn encoded -> IO.binwrite(known_hosts(opts), encoded) end).()
+        else
+          :ok
+        end
 
       _ ->
         message = """
@@ -138,24 +143,8 @@ defmodule SSHClientKeyAPI do
     Enum.any?(fingerprints, fn {k, v} -> k == key && Enum.member?(v[:hostnames], hostname) end)
   end
 
-  defp default_user_dir, do: Path.join(System.user_home!(), ".ssh")
-
-  defp default_identity do
-    default_user_dir()
-    |> Path.join("id_rsa.pub")
-    |> File.read!()
-  end
-
-  defp default_known_hosts do
-    default_user_dir()
-    |> Path.join("known_hosts")
-    |> File.open!([:read, :write])
-  end
-
   defp with_defaults(opts) do
     opts
-    |> Keyword.put_new_lazy(:identity, &default_identity/0)
-    |> Keyword.put_new_lazy(:known_hosts, &default_known_hosts/0)
     |> Keyword.put_new(:silently_accept_hosts, false)
   end
 end
