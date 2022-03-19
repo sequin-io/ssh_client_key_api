@@ -82,17 +82,13 @@ defmodule SSHClientKeyAPI do
     false
   end
 
-  def user_key(alg, opts) when alg in @key_algorithms do
+  def user_key(_alg, opts) do
     opts
     |> identity_data
     |> to_string
     |> :public_key.pem_decode()
     |> List.first()
     |> decode_pem_entry(passphrase(opts))
-  end
-
-  def user_key(alg, _) do
-    raise KeyError, {:unsupported_algorithm, alg}
   end
 
   defp decode_pem_entry(nil, _phrase) do
